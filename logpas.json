@@ -1,0 +1,11 @@
+{
+	"Artem": {
+		"login": "kate",
+		"pass": "kate123",
+		"mongoURI": "@ds157901.mlab.com:57901/base1",
+		"db": {
+			"name": "base1",
+			"collection": "phonebook"
+		}
+	}
+}
