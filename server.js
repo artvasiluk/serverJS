@@ -2,92 +2,96 @@ const express = require('express');
 const bodyParser = require("body-parser");
 const fs = require('fs');
 const mongoClient = require("mongodb").MongoClient;
+const users = require('./logpas.json');
+
 
 const app = express();
-const jsonParser = bodyParser.json();
-const url = 'mongodb://kate:kate123@ds157901.mlab.com:57901/base1'
+const url = 'mongodb://' + user.login + ':' + user.pass + user.mongoURI;
+const user = users['Artem'];
 
 app.use(bodyParser.json());
 
-app.get('/', function (req, res) {
-  res.send('Hello, this is my phonebook!');
-  console.log('sending hello');
+app.listen(3000, function () {
+  console.log('App listening on port 3000!');
 });
 
-app.get('/info', function (req, res) {
-    let contact = req.query;
-    let answer = search(contact);
-    answer = JSON.stringify(answer);
-    res.send(answer);
-    console.log('sending info ' + answer);
-  });
+app.get('/', function (req, res) {                      //working hello
+  res.send('Hello, this is my phonebook!');
+  console.log('Sending hello!');
+});
 
-app.listen(3000, function () {
-  console.log('Example app listening on port 3000!');
+app.get('/info', function (req, res) {                  //working info
+    mongoClient.connect(url, function(err, client){
+        if(err) throw console.log(err);
+        const db = client.db(user.db.name);
+        const collection = db.collection(user.db.collection);
+        
+        collection.find().toArray(function(err, results){
+            if(err) throw console.log(err);
+            res.send(results);
+            client.close();
+        });
+    console.log('Sending all contacts of phonebook.');
+    });
 });
 
 app.post('/addUser', function (req, res) {
     let body = req.body;
-    let i = phonebook.findIndex(contact => contact.name === body.name);
-    
-    if(i !== -1) {
-        phonebook[i] = body;
-        res.send("Information of contact was updated");
-    } else {
-        phonebook.push(body);
-        res.send('Contact was added');
-    }
 
-    console.log(phonebook);
-    console.log('post send');
-    
     mongoClient.connect(url, function(err, client){
-        if(err) throw err;
-        const db = client.db('base1');
-        const collection = db.collection('phonebook');
+        if(err) throw console.log(err);
+        const db = client.db(user.db.name);
+        const collection = db.collection(user.db.collection);
         
-        collection.insertOne(body, (function(err, cursor) {
+        collection.findOneAndUpdate({name: body.name}, {$set: {phone: body.phone}}, function(err, results){  //working update
+            if(err) throw console.log(err);
+            res.send(results);
+            client.close();
+        });
+
+        collection.insertOne(body, function(err, cursor) {                                                 //working add
+            if(err) throw console.log(err);
             console.log('Contact added ' + body);
-        }));
+            client.close();
+        });
     });
 });
 
-app.delete('/deleteUser', function (req, res) {
+app.delete('/deleteUser', function (req, res) {   //working delete
     let body = req.body;
-    
-    let i = phonebook.findIndex(contact => contact.name === body.name);
-    
-    if(i !== -1) {
-        phonebook.splice(i, 1);
-        res.send("Contact was deleted");
-    } else {
-        res.send('Contact not found');
-    }
 
-    console.log(phonebook);
-    console.log('delete send')
+    mongoClient.connect(url, function(err, client){
+        if(err) throw console.log(err);
+        const db = client.db(user.db.name);
+        const collection = db.collection(user.db.collection);
+
+        collection.findOneAndDelete({name: body.name}, function(err, results){
+            if(err) throw console.log(err);
+            res.send(results);
+            console.log('Contact deleted.');
+            client.close();
+        });
+    });
 });
 
-let phonebook = [
-    {
-        name: 'vasya',
-        phone: '12345'
-    },
-    {
-        name: 'petya',
-        phone: '67890'
-    },
-    {
-        name: 'ira',
-        phone: '1488'
-    }
-];
+function findContact(name, cb) {
+    collection.find({name: name}).toArray(function(err, results){
+        if(err) throw console.log(err);
+        res.send(results);
+        client.close();
+    });
+}
 
-function search(contact) {
-    for (let i = 0; i < phonebook.length; i++) {
-        if (phonebook[i].name === contact.name || phonebook[i].phone === contact.phone) {
-            return phonebook[i];
-        }
-    }
-    return 'Contact not found.';
+function updateContact(err, name, phone) {
+    collection.findOneAndUpdate({name: name}, {$set: {phone: phone}}, function(err, results){
+        if(err) throw console.log(err);
+        client.close();
+    });
+}
+
+function addContact(err, obj) {
+    collection.insertOne(obj, function(err, cursor) {
+        if(err) throw console.log(err);
+        client.close();
+    });
 }
