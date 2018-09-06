@@ -35,7 +35,8 @@ function deleteUser(name, cb) {
     });
 }
 
-addUser("kola", 1285, read);
+addUser("Igor", 33333, read);
+//deleteUser('Igor', read);
 
 function read(err, res) {
     if (err) throw err;
