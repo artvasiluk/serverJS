@@ -4,12 +4,19 @@ const fs = require('fs');
 const mongoClient = require("mongodb").MongoClient;
 const users = require('./logpas.json');
 
-
 const app = express();
-const url = 'mongodb://' + user.login + ':' + user.pass + user.mongoURI;
 const user = users['Artem'];
+const url = 'mongodb://' + user.login + ':' + user.pass + user.mongoURI;
+let connectMongo = connectMongo(url);
 
 app.use(bodyParser.json());
+
+function connectMongo(url) {
+    mongoClient.connect(url, function(err, client){
+        if(err) return (err);
+        return client;
+    });
+}
 
 app.listen(3000, function () {
   console.log('App listening on port 3000!');
@@ -22,12 +29,12 @@ app.get('/', function (req, res) {                      //working hello
 
 app.get('/info', function (req, res) {                  //working info
     mongoClient.connect(url, function(err, client){
-        if(err) throw console.log(err);
+        if(err) res.send(err);
         const db = client.db(user.db.name);
         const collection = db.collection(user.db.collection);
         
         collection.find().toArray(function(err, results){
-            if(err) throw console.log(err);
+            if(err) res.send(err);
             res.send(results);
             client.close();
         });
@@ -39,21 +46,29 @@ app.post('/addUser', function (req, res) {
     let body = req.body;
 
     mongoClient.connect(url, function(err, client){
-        if(err) throw console.log(err);
+        if(err) res.send(err);
         const db = client.db(user.db.name);
         const collection = db.collection(user.db.collection);
         
-        collection.findOneAndUpdate({name: body.name}, {$set: {phone: body.phone}}, function(err, results){  //working update
-            if(err) throw console.log(err);
-            res.send(results);
-            client.close();
-        });
+        collection.findOne({name: body.name}, function(err, results){
+            if(err) res.send(err);
 
-        collection.insertOne(body, function(err, cursor) {                                                 //working add
-            if(err) throw console.log(err);
-            console.log('Contact added ' + body);
-            client.close();
-        });
+            if(results === null) {
+                collection.insertOne(body, function(err, cursor) {                                                 //working add
+                    if(err) res.send(err);
+                    console.log('Contact added');
+                    res.send('Contact added');
+                    client.close();
+                });
+            } else {
+                collection.findOneAndUpdate({name: body.name}, {$set: {phone: body.phone}}, function(err, results){  //working update
+                    if(err) res.send(err);
+                    console.log('Contact updated');
+                    res.send('Contact updated');
+                    client.close();
+                });
+            }
+        });    
     });
 });
 
@@ -61,20 +76,20 @@ app.delete('/deleteUser', function (req, res) {   //working delete
     let body = req.body;
 
     mongoClient.connect(url, function(err, client){
-        if(err) throw console.log(err);
+        if(err) res.send(err);
         const db = client.db(user.db.name);
         const collection = db.collection(user.db.collection);
 
         collection.findOneAndDelete({name: body.name}, function(err, results){
-            if(err) throw console.log(err);
-            res.send(results);
+            if(err) res.send(err);
+            res.send('Contact deleted.');
             console.log('Contact deleted.');
             client.close();
         });
     });
 });
 
-function findContact(name, cb) {
+/*function findContact(name, cb) {
     collection.find({name: name}).toArray(function(err, results){
         if(err) throw console.log(err);
         res.send(results);
@@ -94,4 +109,4 @@ function addContact(err, obj) {
         if(err) throw console.log(err);
         client.close();
     });
-}
+}*/
