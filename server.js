@@ -7,7 +7,7 @@ const users = require('./logpas.json');
 const app = express();
 const user = users['Artem'];
 const url = 'mongodb://' + user.login + ':' + user.pass + user.mongoURI;
-let connectMongo = connectMongo(url);
+let mongo = connectMongo(url);
 
 app.use(bodyParser.json());
 
@@ -28,18 +28,15 @@ app.get('/', function (req, res) {                      //working hello
 });
 
 app.get('/info', function (req, res) {                  //working info
-    mongoClient.connect(url, function(err, client){
+    const db = mongo.db(user.db.name);
+    const collection = db.collection(user.db.collection);
+    
+    collection.find().toArray(function(err, results){
         if(err) res.send(err);
-        const db = client.db(user.db.name);
-        const collection = db.collection(user.db.collection);
-        
-        collection.find().toArray(function(err, results){
-            if(err) res.send(err);
-            res.send(results);
-            client.close();
-        });
-    console.log('Sending all contacts of phonebook.');
+        res.send(results);
+        client.close();
     });
+    console.log('Sending all contacts of phonebook.');
 });
 
 app.post('/addUser', function (req, res) {
@@ -88,25 +85,3 @@ app.delete('/deleteUser', function (req, res) {   //working delete
         });
     });
 });
-
-/*function findContact(name, cb) {
-    collection.find({name: name}).toArray(function(err, results){
-        if(err) throw console.log(err);
-        res.send(results);
-        client.close();
-    });
-}
-
-function updateContact(err, name, phone) {
-    collection.findOneAndUpdate({name: name}, {$set: {phone: phone}}, function(err, results){
-        if(err) throw console.log(err);
-        client.close();
-    });
-}
-
-function addContact(err, obj) {
-    collection.insertOne(obj, function(err, cursor) {
-        if(err) throw console.log(err);
-        client.close();
-    });
-}*/
